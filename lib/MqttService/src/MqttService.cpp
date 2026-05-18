@@ -4,7 +4,6 @@
 #include <ArduinoJson.h>
 
 #include <AppConfig.h>
-#include <ClientCredentials.h>
 
 namespace
 {
@@ -25,51 +24,88 @@ MqttService::MqttService() : mqttClient(tlsClient)
 {
 }
 
-void MqttService::begin()
+void MqttService::begin(const MqttConfig &initialConfig)
 {
-  tlsClient.setCACert(ClientCredentials::mqttCaCert());
-  mqttClient.setServer(ClientCredentials::mqttServer(), ClientCredentials::mqttPort());
   mqttClient.setCallback(onMessage);
   mqttClient.setKeepAlive(120);
+  applyConfig(initialConfig);
 }
 
-void MqttService::connect()
+void MqttService::applyConfig(const MqttConfig &newConfig)
 {
+  if (mqttClient.connected())
+  {
+    mqttClient.disconnect();
+  }
+
+  config = newConfig;
+  if (config.caCert.length() > 0)
+  {
+    tlsClient.setCACert(config.caCert.c_str());
+  }
+  else
+  {
+    tlsClient.setInsecure();
+  }
+
+  mqttClient.setServer(config.server.c_str(), config.port);
+}
+
+bool MqttService::connect(uint8_t maxAttempts)
+{
+  uint8_t attempts = 0;
   while (!mqttClient.connected())
   {
+    if (maxAttempts > 0 && attempts >= maxAttempts)
+    {
+      return false;
+    }
+    attempts++;
+
     Serial.print("[Info] Connect MQTT Broker...");
 
-    if (mqttClient.connect(ClientCredentials::mqttClientId(),
-                           ClientCredentials::mqttUser(),
-                           ClientCredentials::mqttPassword()))
+    if (mqttClient.connect(config.clientId.c_str(),
+                           config.user.c_str(),
+                           config.password.c_str()))
     {
       Serial.println("[Info] MQTT connected!");
-      if (mqttClient.subscribe(ClientCredentials::mqttSubscribeTopic()))
+      if (mqttClient.subscribe(config.subscribeTopic.c_str()))
       {
         Serial.print("[Info] Subscribe topic: ");
-        Serial.println(ClientCredentials::mqttSubscribeTopic());
+        Serial.println(config.subscribeTopic);
       }
       else
       {
         Serial.print("[Error] Subscribe failed: ");
-        Serial.println(ClientCredentials::mqttSubscribeTopic());
+        Serial.println(config.subscribeTopic);
       }
+      return true;
     }
     else
     {
       Serial.print("[Error] MQTT failed, state=");
       Serial.println(mqttClient.state());
-      delay(5000);
+      if (maxAttempts == 0)
+      {
+        delay(5000);
+      }
     }
   }
+
+  return true;
 }
 
 void MqttService::ensureConnected()
 {
   if (!mqttClient.connected())
   {
-    connect();
+    connect(1);
   }
+}
+
+bool MqttService::isConnected()
+{
+  return mqttClient.connected();
 }
 
 void MqttService::loop()
@@ -80,7 +116,7 @@ void MqttService::loop()
 void MqttService::publishInitialMessage()
 {
   String msg = "Hello from ESP32, uptime=" + String(millis() / 1000) + "s";
-  if (mqttClient.publish(ClientCredentials::mqttPublishTopic(), msg.c_str()))
+  if (mqttClient.publish(config.publishTopic.c_str(), msg.c_str()))
   {
     Serial.print("[Publish] msg=");
     Serial.println(msg);
@@ -88,7 +124,7 @@ void MqttService::publishInitialMessage()
   else
   {
     Serial.print("[Error] Publish failed: ");
-    Serial.println(ClientCredentials::mqttPublishTopic());
+    Serial.println(config.publishTopic);
   }
 }
 
@@ -114,7 +150,7 @@ void MqttService::reportProperty(const char *propertyName, float value)
   String payload;
   serializeJson(doc, payload);
 
-  if (mqttClient.publish(ClientCredentials::mqttReportTopic(), payload.c_str()))
+  if (mqttClient.publish(config.reportTopic.c_str(), payload.c_str()))
   {
     Serial.print("[Report] ");
     Serial.print(propertyName);

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MQTT配置中心</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, "Segoe UI", system-ui, sans-serif;
+      background: #f5f7fa;
+      color: #172033;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+    .topbar {
+      background: #ffffff;
+      border-bottom: 1px solid #dce3ed;
+    }
+    .topbar-inner {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 18px 0 0;
+    }
+    h1 {
+      margin: 0 0 4px;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0;
+      color: #5a6578;
+      line-height: 1.5;
+    }
+    code {
+      background: #edf2f7;
+      padding: 2px 5px;
+      border-radius: 5px;
+    }
+    nav {
+      display: flex;
+      gap: 4px;
+      margin-top: 18px;
+      overflow-x: auto;
+    }
+    nav button {
+      border: 0;
+      border-bottom: 3px solid transparent;
+      padding: 12px 15px 10px;
+      background: transparent;
+      color: #4c596c;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    nav button.active {
+      color: #1269d3;
+      border-bottom-color: #1269d3;
+    }
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+    .panel {
+      display: none;
+      border: 1px solid #dce3ed;
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 20px;
+    }
+    .panel.active {
+      display: block;
+    }
+    .panel h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+    .status-grid,
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .metric {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .metric span,
+    label span {
+      display: block;
+      margin-bottom: 7px;
+      color: #5a6578;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .metric strong {
+      display: block;
+      min-height: 24px;
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .ok {
+      background: #e8f7ee;
+      color: #126b36;
+    }
+    .bad {
+      background: #fff1f1;
+      color: #9b1c1c;
+    }
+    label {
+      display: grid;
+      gap: 7px;
+      font-weight: 650;
+      color: #263249;
+    }
+    input,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #c8d2df;
+      border-radius: 6px;
+      padding: 10px 11px;
+      font: inherit;
+      color: #172033;
+      background: #fbfcfe;
+    }
+    textarea {
+      min-height: 320px;
+      resize: vertical;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .span-2 {
+      grid-column: 1 / -1;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid #eef2f6;
+    }
+    .actions button {
+      border: 0;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      background: #1269d3;
+      color: white;
+    }
+    .actions .secondary {
+      background: #e9eef5;
+      color: #1d2a3e;
+    }
+    .errors {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border: 1px solid #f0b6b6;
+      border-radius: 8px;
+      background: #fff2f2;
+      color: #8a1f1f;
+    }
+    @media (max-width: 760px) {
+      .status-grid,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .span-2 {
+        grid-column: auto;
+      }
+      .actions {
+        justify-content: stretch;
+        flex-direction: column;
+      }
+      .actions button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <h1>ESP32 MQTT 配置中心</h1>
+      <p>设备配置接口：<code>http://{{ host_ip }}:5000/api/device-config</code></p>
+      <nav aria-label="页面导航">
+        <button type="button" class="active" data-tab="device">设备信息</button>
+        <button type="button" data-tab="mqtt">MQTT 连接参数</button>
+        <button type="button" data-tab="topics">Topic</button>
+        <button type="button" data-tab="cert">CA 证书</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    {% if errors %}
+      <section class="errors">
+        {% for error in errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    <section class="panel active" data-panel="device">
+      <h2>设备信息</h2>
+      <div class="status-grid" id="device-status">
+        <div class="metric">
+          <span>设备连接</span>
+          <strong><span class="badge {{ 'ok' if status.online else 'bad' }}">{{ '在线' if status.online else '离线' }}</span></strong>
+        </div>
+        <div class="metric">
+          <span>MQTT 连接</span>
+          <strong><span class="badge {{ 'ok' if status.mqtt_connected else 'bad' }}">{{ '已连接' if status.mqtt_connected else '未连接' }}</span></strong>
+        </div>
+        <div class="metric">
+          <span>WiFi SSID</span>
+          <strong>{{ status.wifi_ssid or '-' }}</strong>
+        </div>
+        <div class="metric">
+          <span>WiFi IP</span>
+          <strong>{{ status.wifi_ip or '-' }}</strong>
+        </div>
+        <div class="metric">
+          <span>WiFi RSSI</span>
+          <strong>{{ status.wifi_rssi if status.wifi_rssi is defined else '-' }}</strong>
+        </div>
+        <div class="metric">
+          <span>MAC 地址</span>
+          <strong>{{ status.mac_address or '-' }}</strong>
+        </div>
+        <div class="metric">
+          <span>当前 MQTT Server</span>
+          <strong>{{ status.mqtt_server or '-' }}</strong>
+        </div>
+        <div class="metric">
+          <span>Client ID</span>
+          <strong>{{ status.mqtt_client_id or '-' }}</strong>
+        </div>
+        <div class="metric span-2">
+          <span>最近状态</span>
+          <strong>{{ status.message or '还没有收到 ESP32 回报' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <form method="post" action="/">
+      <section class="panel" data-panel="mqtt">
+        <h2>MQTT 连接参数</h2>
+        <div class="form-grid">
+          <label>
+            <span>MQTT Server</span>
+            <input name="server" value="{{ config.server }}" required>
+          </label>
+          <label>
+            <span>Port</span>
+            <input name="port" type="number" min="1" max="65535" value="{{ config.port }}" required>
+          </label>
+          <label>
+            <span>Client ID</span>
+            <input name="client_id" value="{{ config.client_id }}" required>
+          </label>
+          <label>
+            <span>User</span>
+            <input name="user" value="{{ config.user }}">
+          </label>
+          <label>
+            <span>Password</span>
+            <input name="password" type="password" value="{{ config.password }}">
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="topics">
+        <h2>Topic</h2>
+        <div class="form-grid">
+          <label class="span-2">
+            <span>Publish Topic</span>
+            <input name="publish_topic" value="{{ config.publish_topic }}" required>
+          </label>
+          <label class="span-2">
+            <span>Subscribe Topic</span>
+            <input name="subscribe_topic" value="{{ config.subscribe_topic }}" required>
+          </label>
+          <label class="span-2">
+            <span>Report Topic</span>
+            <input name="report_topic" value="{{ config.report_topic }}" required>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel" data-panel="cert">
+        <h2>CA 证书</h2>
+        <label>
+          <span>CA Certificate</span>
+          <textarea name="ca_cert" placeholder="如果 MQTT 不需要 TLS CA，可以留空。">{{ config.ca_cert }}</textarea>
+        </label>
+      </section>
+
+      <div class="actions">
+        <button class="secondary" formaction="/refresh" formmethod="post">刷新 ESP32 配置</button>
+        <button type="submit">保存并刷新 ESP32</button>
+      </div>
+    </form>
+  </main>
+
+  <script>
+    const buttons = [...document.querySelectorAll("nav button")];
+    const panels = [...document.querySelectorAll("[data-panel]")];
+
+    function showTab(name) {
+      buttons.forEach((button) => button.classList.toggle("active", button.dataset.tab === name));
+      panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === name));
+      history.replaceState(null, "", `#${name}`);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => showTab(button.dataset.tab));
+    });
+
+    showTab(location.hash.replace("#", "") || "device");
+
+    function badge(text, good) {
+      return `<span class="badge ${good ? "ok" : "bad"}">${text}</span>`;
+    }
+
+    function metric(label, value, className = "") {
+      return `<div class="metric ${className}"><span>${label}</span><strong>${value || "-"}</strong></div>`;
+    }
+
+    async function refreshStatus() {
+      const response = await fetch("/api/device-status");
+      if (!response.ok) return;
+      const status = await response.json();
+      const device = badge(status.online ? "在线" : "离线", status.online);
+      const mqtt = badge(status.mqtt_connected ? "已连接" : "未连接", status.mqtt_connected);
+      document.getElementById("device-status").innerHTML = [
+        metric("设备连接", device),
+        metric("MQTT 连接", mqtt),
+        metric("WiFi SSID", status.wifi_ssid),
+        metric("WiFi IP", status.wifi_ip),
+        metric("WiFi RSSI", status.wifi_rssi),
+        metric("MAC 地址", status.mac_address),
+        metric("当前 MQTT Server", status.mqtt_server),
+        metric("Client ID", status.mqtt_client_id),
+        metric("最近状态", status.message || "还没有收到 ESP32 回报", "span-2"),
+      ].join("");
+    }
+
+    setInterval(refreshStatus, 3000);
+    refreshStatus();
+  </script>
+</body>
+</html>

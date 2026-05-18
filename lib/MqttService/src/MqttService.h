@@ -3,14 +3,18 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 
+#include <MqttConfig.h>
+
 class MqttService
 {
 public:
   MqttService();
 
-  void begin();
-  void connect();
+  void begin(const MqttConfig &initialConfig);
+  void applyConfig(const MqttConfig &newConfig);
+  bool connect(uint8_t maxAttempts = 0);
   void ensureConnected();
+  bool isConnected();
   void loop();
 
   void publishInitialMessage();
@@ -20,6 +24,7 @@ public:
 private:
   void reportProperty(const char *propertyName, float value);
 
+  MqttConfig config;
   WiFiClientSecure tlsClient;
   PubSubClient mqttClient;
 };

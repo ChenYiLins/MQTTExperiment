@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "server": "your-mqtt-broker.example.com",
+  "port": 8883,
+  "client_id": "0_mqttdevices_0_0_0",
+  "user": "mqtt-user",
+  "password": "mqtt-password",
+  "publish_topic": "$oc/devices/{device_id}/sys/messages/up",
+  "subscribe_topic": "$oc/devices/{device_id}/sys/messages/down",
+  "report_topic": "$oc/devices/{device_id}/sys/properties/report",
+  "ca_cert": ""
+}
