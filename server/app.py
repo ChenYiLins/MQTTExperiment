@@ -20,6 +20,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "client_id": "esp32-mqtt-experiment",
     "user": "",
     "password": "",
+    "upload_interval_ms": 5000,
     "publish_topic": "",
     "subscribe_topic": "",
     "report_topic": "",
@@ -81,6 +82,7 @@ def save_mqtt_config(data: dict[str, Any]) -> dict[str, Any]:
             "client_id": str(data.get("client_id", "")).strip(),
             "user": str(data.get("user", "")).strip(),
             "password": str(data.get("password", "")),
+            "upload_interval_ms": int(data.get("upload_interval_ms") or 0),
             "publish_topic": str(data.get("publish_topic", "")).strip(),
             "subscribe_topic": str(data.get("subscribe_topic", "")).strip(),
             "report_topic": str(data.get("report_topic", "")).strip(),
@@ -105,6 +107,9 @@ def validate_config(config: dict[str, Any]) -> list[str]:
     port = int(config.get("port") or 0)
     if port < 1 or port > 65535:
         errors.append("Port must be between 1 and 65535")
+    upload_interval_ms = int(config.get("upload_interval_ms") or 0)
+    if upload_interval_ms < 1000:
+        errors.append("Upload interval must be at least 1000 ms")
     return errors
 
 
@@ -188,6 +193,7 @@ def api_device_status():
         "mac_address": str(payload.get("mac_address", "")),
         "mqtt_server": str(payload.get("mqtt_server", "")),
         "mqtt_client_id": str(payload.get("mqtt_client_id", "")),
+        "upload_interval_ms": int(payload.get("upload_interval_ms") or 0),
     }
     write_json(STATUS_PATH, status)
     return jsonify({"ok": True})

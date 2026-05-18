@@ -95,7 +95,7 @@ void loop()
   latestTemperature = temperatureSensor.readCelsius();
   latestHumidity = AppConfig::demoHumidity;
 
-  if (lastUploadTimeMs == 0 || (now - lastUploadTimeMs) >= AppConfig::uploadIntervalMs)
+  if (lastUploadTimeMs == 0 || (now - lastUploadTimeMs) >= mqttConfig.uploadIntervalMs)
   {
     uploadTelemetry();
     lastUploadTimeMs = now;

@@ -85,6 +85,7 @@ MqttConfig MqttConfigStore::defaultConfig() const
   config.publishTopic = ClientCredentials::mqttPublishTopic();
   config.subscribeTopic = ClientCredentials::mqttSubscribeTopic();
   config.reportTopic = ClientCredentials::mqttReportTopic();
+  config.uploadIntervalMs = AppConfig::uploadIntervalMs;
   config.version = 0;
   return config;
 }
@@ -105,6 +106,7 @@ bool MqttConfigStore::loadFromNvs(MqttConfig &config)
   config.publishTopic = readString("pub_topic", config.publishTopic);
   config.subscribeTopic = readString("sub_topic", config.subscribeTopic);
   config.reportTopic = readString("report_topic", config.reportTopic);
+  config.uploadIntervalMs = preferences.getULong("upload_ms", config.uploadIntervalMs);
   config.version = preferences.getULong("version", config.version);
   return true;
 }
@@ -120,6 +122,7 @@ void MqttConfigStore::saveToNvs(const MqttConfig &config)
   preferences.putString("pub_topic", config.publishTopic);
   preferences.putString("sub_topic", config.subscribeTopic);
   preferences.putString("report_topic", config.reportTopic);
+  preferences.putULong("upload_ms", config.uploadIntervalMs);
   preferences.putULong("version", config.version);
 }
 
@@ -138,10 +141,11 @@ bool MqttConfigStore::parsePayload(const String &payload, MqttConfig &config)
   const char *publishTopic = doc["publish_topic"] | "";
   const char *subscribeTopic = doc["subscribe_topic"] | "";
   const char *reportTopic = doc["report_topic"] | "";
+  unsigned long uploadIntervalMs = doc["upload_interval_ms"] | 0;
 
   if (strlen(server) == 0 || port == 0 || strlen(clientId) == 0 ||
       strlen(publishTopic) == 0 || strlen(subscribeTopic) == 0 ||
-      strlen(reportTopic) == 0)
+      strlen(reportTopic) == 0 || uploadIntervalMs == 0)
   {
     return false;
   }
@@ -155,6 +159,7 @@ bool MqttConfigStore::parsePayload(const String &payload, MqttConfig &config)
   config.publishTopic = publishTopic;
   config.subscribeTopic = subscribeTopic;
   config.reportTopic = reportTopic;
+  config.uploadIntervalMs = uploadIntervalMs;
   config.version = doc["version"] | 0;
   return true;
 }
@@ -184,6 +189,7 @@ void MqttConfigStore::reportDeviceStatus(const MqttConfig &config, bool mqttConn
   doc["mac_address"] = WiFi.macAddress();
   doc["mqtt_server"] = config.server;
   doc["mqtt_client_id"] = config.clientId;
+  doc["upload_interval_ms"] = config.uploadIntervalMs;
 
   String payload;
   serializeJson(doc, payload);

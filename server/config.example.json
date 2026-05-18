@@ -5,6 +5,7 @@
   "client_id": "0_mqttdevices_0_0_0",
   "user": "mqtt-user",
   "password": "mqtt-password",
+  "upload_interval_ms": 5000,
   "publish_topic": "$oc/devices/{device_id}/sys/messages/up",
   "subscribe_topic": "$oc/devices/{device_id}/sys/messages/down",
   "report_topic": "$oc/devices/{device_id}/sys/properties/report",

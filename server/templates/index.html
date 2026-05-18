@@ -257,6 +257,10 @@
           <span>Client ID</span>
           <strong>{{ status.mqtt_client_id or '-' }}</strong>
         </div>
+        <div class="metric">
+          <span>Upload Interval</span>
+          <strong>{{ status.upload_interval_ms or '-' }} ms</strong>
+        </div>
         <div class="metric span-2">
           <span>最近状态</span>
           <strong>{{ status.message or '还没有收到 ESP32 回报' }}</strong>
@@ -287,6 +291,10 @@
           <label>
             <span>Password</span>
             <input name="password" type="password" value="{{ config.password }}">
+          </label>
+          <label>
+            <span>Upload Interval (ms)</span>
+            <input name="upload_interval_ms" type="number" min="1000" step="1000" value="{{ config.upload_interval_ms }}" required>
           </label>
         </div>
       </section>
@@ -363,6 +371,7 @@
         metric("MAC 地址", status.mac_address),
         metric("当前 MQTT Server", status.mqtt_server),
         metric("Client ID", status.mqtt_client_id),
+        metric("Upload Interval", status.upload_interval_ms ? `${status.upload_interval_ms} ms` : "-"),
         metric("最近状态", status.message || "还没有收到 ESP32 回报", "span-2"),
       ].join("");
     }

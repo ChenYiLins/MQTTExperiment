@@ -14,6 +14,7 @@ struct MqttConfig
   String publishTopic;
   String subscribeTopic;
   String reportTopic;
+  unsigned long uploadIntervalMs = 5000;
   unsigned long version = 0;
 };
 
