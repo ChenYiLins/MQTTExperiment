@@ -116,7 +116,21 @@ def validate_config(config: dict[str, Any]) -> list[str]:
 def device_status() -> dict[str, Any]:
     status = read_json(STATUS_PATH, {})
     last_seen = int(status.get("last_seen") or 0)
-    status["online"] = bool(last_seen and int(time.time()) - last_seen <= 30)
+    offline_timeout_sec = 30
+    online = bool(last_seen and int(time.time()) - last_seen <= offline_timeout_sec)
+    status["online"] = online
+    if not online:
+        status["device_connected"] = False
+        status["mqtt_connected"] = False
+        status["wifi_ssid"] = ""
+        status["wifi_ip"] = ""
+        status["wifi_rssi"] = 0
+        status["mac_address"] = ""
+        status["mqtt_server"] = ""
+        status["mqtt_client_id"] = ""
+        status["upload_interval_ms"] = 0
+        status["uptime_ms"] = 0
+        status["message"] = "设备已离线"
     return status
 
 
@@ -147,6 +161,9 @@ def save_from_form():
 
 @app.post("/refresh")
 def refresh_version():
+    form_data = request.form.to_dict()
+    if any(form_data.values()):
+        save_mqtt_config(form_data)
     config = mqtt_config()
     config["version"] = int(config.get("version", 0)) + 1
     write_json(CONFIG_PATH, config)

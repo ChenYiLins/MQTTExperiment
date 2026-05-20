@@ -38,6 +38,7 @@ void MqttService::applyConfig(const MqttConfig &newConfig)
     mqttClient.disconnect();
   }
 
+  tlsClient.stop();
   config = newConfig;
   if (config.caCert.length() > 0)
   {
@@ -88,6 +89,10 @@ bool MqttService::connect(uint8_t maxAttempts)
       if (maxAttempts == 0)
       {
         delay(5000);
+      }
+      else
+      {
+        delay(1000);
       }
     }
   }

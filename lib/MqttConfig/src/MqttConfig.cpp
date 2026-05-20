@@ -69,7 +69,6 @@ bool MqttConfigStore::refreshFromServer(MqttConfig &config)
 
   config = fetchedConfig;
   saveToNvs(config);
-  reportDeviceStatus(config, false, "Config refreshed");
   return true;
 }
 
