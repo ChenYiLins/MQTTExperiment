@@ -17,7 +17,7 @@ constexpr unsigned long configRefreshIntervalMs = 10000;
 constexpr unsigned long configHttpTimeoutMs = 3000;
 
 constexpr float fallbackTemperature = -99.0f;
-constexpr float demoHumidity = 60.0f;
+constexpr float fallbackHumidity = -1.0f;
 
 constexpr const char *serviceId = "MQTT_experimental_service";
 

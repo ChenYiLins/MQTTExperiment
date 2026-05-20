@@ -3,6 +3,7 @@
 #include <AppConfig.h>
 #include <DebouncedButton.h>
 #include <DisplayService.h>
+#include <HumidityService.h>
 #include <MqttConfig.h>
 #include <MqttService.h>
 #include <TemperatureSensor.h>
@@ -15,6 +16,7 @@ enum class DisplayContentMode
 };
 
 WiFiService wifiService;
+HumidityService humidityService;
 MqttConfigStore mqttConfigStore;
 MqttConfig mqttConfig;
 MqttService mqttService;
@@ -26,7 +28,7 @@ DisplayContentMode displayContentMode = DisplayContentMode::Temperature;
 unsigned long lastUploadTimeMs = 0;
 unsigned long lastConfigRefreshTimeMs = 0;
 float latestTemperature = AppConfig::fallbackTemperature;
-float latestHumidity = AppConfig::demoHumidity;
+float latestHumidity = AppConfig::fallbackHumidity;
 
 void uploadTelemetry()
 {
@@ -61,6 +63,8 @@ void setup()
   wifiService.connect();
   // wifiService.syncTime();
 
+  humidityService.begin();
+
   mqttConfigStore.begin();
   mqttConfig = mqttConfigStore.load();
   mqttConfigStore.refreshFromServer(mqttConfig);
@@ -93,7 +97,11 @@ void loop()
   mqttService.loop();
 
   latestTemperature = temperatureSensor.readCelsius();
-  latestHumidity = AppConfig::demoHumidity;
+  latestHumidity = humidityService.getHumidity();
+  if (latestHumidity < 0.0f)
+  {
+    latestHumidity = AppConfig::fallbackHumidity;
+  }
 
   if (lastUploadTimeMs == 0 || (now - lastUploadTimeMs) >= mqttConfig.uploadIntervalMs)
   {
