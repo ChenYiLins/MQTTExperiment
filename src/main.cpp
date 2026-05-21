@@ -27,6 +27,7 @@ DebouncedButton displayModeButton(AppConfig::switchPin, AppConfig::switchDebounc
 DisplayContentMode displayContentMode = DisplayContentMode::Temperature;
 unsigned long lastUploadTimeMs = 0;
 unsigned long lastConfigRefreshTimeMs = 0;
+unsigned long lastStatusReportTimeMs = 0;
 float latestTemperature = AppConfig::fallbackTemperature;
 float latestHumidity = AppConfig::fallbackHumidity;
 
@@ -72,6 +73,7 @@ void setup()
   mqttService.begin(mqttConfig);
   mqttService.connect(3);
   mqttService.publishInitialMessage();
+  mqttConfigStore.reportDeviceStatus(mqttConfig, mqttService.isConnected(), "Device connected");
 
   temperatureSensor.begin();
   display.begin();
@@ -90,7 +92,6 @@ void loop()
       mqttService.publishInitialMessage();
     }
     lastConfigRefreshTimeMs = now;
-    mqttConfigStore.reportDeviceStatus(mqttConfig, mqttService.isConnected(), "Device heartbeat");
   }
 
   mqttService.ensureConnected();
@@ -107,6 +108,12 @@ void loop()
   {
     uploadTelemetry();
     lastUploadTimeMs = now;
+  }
+
+  if (lastStatusReportTimeMs == 0 || (now - lastStatusReportTimeMs) >= AppConfig::statusReportIntervalMs)
+  {
+    mqttConfigStore.reportDeviceStatus(mqttConfig, mqttService.isConnected(), "Device heartbeat");
+    lastStatusReportTimeMs = now;
   }
 
   refreshDisplay();

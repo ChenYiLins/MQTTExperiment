@@ -226,12 +226,20 @@
       <h2>设备信息</h2>
       <div class="status-grid" id="device-status">
         <div class="metric">
-          <span>设备连接</span>
+          <span>设备在线</span>
           <strong><span class="badge {{ 'ok' if status.online else 'bad' }}">{{ '在线' if status.online else '离线' }}</span></strong>
+        </div>
+        <div class="metric">
+          <span>设备连接</span>
+          <strong><span class="badge {{ 'ok' if status.device_connected else 'bad' }}">{{ '已连接' if status.device_connected else '未连接' }}</span></strong>
         </div>
         <div class="metric">
           <span>MQTT 连接</span>
           <strong><span class="badge {{ 'ok' if status.mqtt_connected else 'bad' }}">{{ '已连接' if status.mqtt_connected else '未连接' }}</span></strong>
+        </div>
+        <div class="metric">
+          <span>最近心跳</span>
+          <strong>{{ status.last_seen_text or '-' }}{% if status.last_seen_age_sec is not none %}（{{ status.last_seen_age_sec }} 秒前）{% endif %}</strong>
         </div>
         <div class="metric">
           <span>WiFi SSID</span>
@@ -352,6 +360,13 @@
       return `<span class="badge ${good ? "ok" : "bad"}">${text}</span>`;
     }
 
+    function statusBadge(online, value, onlineText, staleText) {
+      if (online) {
+        return badge(onlineText, value);
+      }
+      return badge(staleText, value);
+    }
+
     function metric(label, value, className = "") {
       return `<div class="metric ${className}"><span>${label}</span><strong>${value || "-"}</strong></div>`;
     }
@@ -361,10 +376,16 @@
       if (!response.ok) return;
       const status = await response.json();
       const device = badge(status.online ? "在线" : "离线", status.online);
-      const mqtt = badge(status.mqtt_connected ? "已连接" : "未连接", status.mqtt_connected);
+      const deviceConnection = statusBadge(status.online, status.device_connected, status.device_connected ? "已连接" : "未连接", status.device_connected ? "上次已连接" : "上次未连接");
+      const mqtt = statusBadge(status.online, status.mqtt_connected, status.mqtt_connected ? "已连接" : "未连接", status.mqtt_connected ? "上次已连接" : "上次未连接");
+      const heartbeat = status.last_seen_age_sec === null || status.last_seen_age_sec === undefined
+        ? "-"
+        : `${status.last_seen_text}（${status.last_seen_age_sec} 秒前）`;
       document.getElementById("device-status").innerHTML = [
-        metric("设备连接", device),
+        metric("设备在线", device),
+        metric("设备连接", deviceConnection),
         metric("MQTT 连接", mqtt),
+        metric("最近心跳", heartbeat),
         metric("WiFi SSID", status.wifi_ssid),
         metric("WiFi IP", status.wifi_ip),
         metric("WiFi RSSI", status.wifi_rssi),

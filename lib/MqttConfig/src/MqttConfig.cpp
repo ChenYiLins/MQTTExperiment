@@ -4,6 +4,7 @@
 #include <HTTPClient.h>
 #include <Preferences.h>
 #include <WiFi.h>
+#include <WiFiUdp.h>
 
 #include <AppConfig.h>
 #include <ClientCredentials.h>
@@ -13,10 +14,116 @@ namespace
 constexpr const char *preferencesNamespace = "mqtt_cfg";
 
 Preferences preferences;
+String cachedServerBaseUrl;
+unsigned long cachedServerBaseUrlAtMs = 0;
 
 String readString(const char *key, const String &fallback)
 {
   return preferences.getString(key, fallback);
+}
+
+void clearDiscoveryCache()
+{
+  cachedServerBaseUrl = "";
+  cachedServerBaseUrlAtMs = 0;
+}
+
+bool discoveryCacheValid()
+{
+  return cachedServerBaseUrl.length() > 0 &&
+         (millis() - cachedServerBaseUrlAtMs) <= AppConfig::configDiscoveryCacheMs;
+}
+
+IPAddress broadcastAddress()
+{
+  IPAddress ip = WiFi.localIP();
+  IPAddress subnet = WiFi.subnetMask();
+  return IPAddress(
+      static_cast<uint8_t>(ip[0] | ~subnet[0]),
+      static_cast<uint8_t>(ip[1] | ~subnet[1]),
+      static_cast<uint8_t>(ip[2] | ~subnet[2]),
+      static_cast<uint8_t>(ip[3] | ~subnet[3]));
+}
+
+bool parseDiscoveryResponse(const String &payload, String &baseUrl)
+{
+  String prefix = AppConfig::mqttConfigDiscoveryResponsePrefix;
+  if (!payload.startsWith(prefix))
+  {
+    return false;
+  }
+
+  baseUrl = payload.substring(prefix.length());
+  return baseUrl.startsWith("http://") || baseUrl.startsWith("https://");
+}
+
+bool discoverServerBaseUrl(String &baseUrl)
+{
+  if (discoveryCacheValid())
+  {
+    baseUrl = cachedServerBaseUrl;
+    return true;
+  }
+
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return false;
+  }
+
+  WiFiUDP udp;
+  if (!udp.begin(AppConfig::mqttConfigDiscoveryPort + 1))
+  {
+    return false;
+  }
+
+  IPAddress target = broadcastAddress();
+  udp.beginPacket(target, AppConfig::mqttConfigDiscoveryPort);
+  udp.write(reinterpret_cast<const uint8_t *>(AppConfig::mqttConfigDiscoveryRequest),
+            strlen(AppConfig::mqttConfigDiscoveryRequest));
+  udp.endPacket();
+
+  unsigned long startMs = millis();
+  while ((millis() - startMs) <= AppConfig::configDiscoveryTimeoutMs)
+  {
+    int packetSize = udp.parsePacket();
+    if (packetSize <= 0)
+    {
+      delay(25);
+      continue;
+    }
+
+    char responseBuffer[128] = {0};
+    int responseLength = udp.read(reinterpret_cast<uint8_t *>(responseBuffer), sizeof(responseBuffer) - 1);
+    if (responseLength <= 0)
+    {
+      continue;
+    }
+
+    String response(responseBuffer);
+    response.trim();
+    if (!parseDiscoveryResponse(response, baseUrl))
+    {
+      continue;
+    }
+
+    cachedServerBaseUrl = baseUrl;
+    cachedServerBaseUrlAtMs = millis();
+    udp.stop();
+    return true;
+  }
+
+  udp.stop();
+  return false;
+}
+
+String endpointUrl(const char *path)
+{
+  String baseUrl;
+  if (!discoverServerBaseUrl(baseUrl))
+  {
+    return "";
+  }
+  return baseUrl + path;
 }
 }
 
@@ -37,9 +144,17 @@ bool MqttConfigStore::refreshFromServer(MqttConfig &config)
   HTTPClient http;
   http.setTimeout(AppConfig::configHttpTimeoutMs);
 
-  if (!http.begin(AppConfig::mqttConfigEndpoint))
+  String endpoint = endpointUrl(AppConfig::mqttConfigPath);
+  if (endpoint.isEmpty())
   {
-    reportDeviceStatus(config, false, "Invalid config endpoint");
+    Serial.println("[Error] Config server not discovered");
+    return false;
+  }
+
+  if (!http.begin(endpoint))
+  {
+    clearDiscoveryCache();
+    Serial.println("[Error] Invalid config endpoint");
     return false;
   }
 
@@ -47,6 +162,10 @@ bool MqttConfigStore::refreshFromServer(MqttConfig &config)
   if (statusCode != HTTP_CODE_OK)
   {
     String message = "HTTP status " + String(statusCode);
+    if (statusCode <= 0)
+    {
+      clearDiscoveryCache();
+    }
     http.end();
     reportDeviceStatus(config, false, message);
     return false;
@@ -170,8 +289,17 @@ void MqttConfigStore::reportDeviceStatus(const MqttConfig &config, bool mqttConn
 
   HTTPClient http;
   http.setTimeout(AppConfig::configHttpTimeoutMs);
-  if (!http.begin(AppConfig::mqttConfigStatusEndpoint))
+
+  String endpoint = endpointUrl(AppConfig::mqttConfigStatusPath);
+  if (endpoint.isEmpty())
   {
+    Serial.println("[Error] Status endpoint not discovered");
+    return;
+  }
+
+  if (!http.begin(endpoint))
+  {
+    clearDiscoveryCache();
     return;
   }
 
@@ -192,6 +320,10 @@ void MqttConfigStore::reportDeviceStatus(const MqttConfig &config, bool mqttConn
 
   String payload;
   serializeJson(doc, payload);
-  http.POST(payload);
+  int statusCode = http.POST(payload);
+  if (statusCode <= 0)
+  {
+    clearDiscoveryCache();
+  }
   http.end();
 }
