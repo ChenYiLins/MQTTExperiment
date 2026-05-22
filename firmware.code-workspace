@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "firmware"
+		},
+		{
+			"path": "server"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "server"
+	}
+}

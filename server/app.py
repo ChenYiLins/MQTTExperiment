@@ -57,7 +57,9 @@ def local_ip() -> str:
 
 
 def discovery_response() -> bytes:
-    return f"{DISCOVERY_RESPONSE_PREFIX}http://{local_ip()}:{SERVER_PORT}".encode("utf-8")
+    return f"{DISCOVERY_RESPONSE_PREFIX}http://{local_ip()}:{SERVER_PORT}".encode(
+        "utf-8"
+    )
 
 
 def discovery_worker() -> None:
@@ -81,7 +83,9 @@ def ensure_discovery_thread() -> None:
     global discovery_thread_started
     if discovery_thread_started:
         return
-    thread = threading.Thread(target=discovery_worker, name="config-discovery", daemon=True)
+    thread = threading.Thread(
+        target=discovery_worker, name="config-discovery", daemon=True
+    )
     thread.start()
     discovery_thread_started = True
 
@@ -103,7 +107,9 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def mark_device_seen(remote_addr: str | None, updates: dict[str, Any] | None = None) -> dict[str, Any]:
+def mark_device_seen(
+    remote_addr: str | None, updates: dict[str, Any] | None = None
+) -> dict[str, Any]:
     status = read_json(STATUS_PATH, {})
     status["last_seen"] = int(time.time())
     status["remote_addr"] = remote_addr or ""
@@ -128,7 +134,6 @@ def status_defaults() -> dict[str, Any]:
         "uptime_ms": 0,
         "wifi_ssid": "",
         "wifi_ip": "",
-        "wifi_rssi": 0,
         "mac_address": "",
         "mqtt_server": "",
         "mqtt_client_id": "",
@@ -191,7 +196,9 @@ def device_status() -> dict[str, Any]:
     status["last_seen_age_sec"] = age_sec
     status["online"] = online
     if last_seen:
-        status["last_seen_text"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(last_seen))
+        status["last_seen_text"] = time.strftime(
+            "%Y-%m-%d %H:%M:%S", time.localtime(last_seen)
+        )
     else:
         status["last_seen_text"] = "-"
     if not online and not status["message"]:
@@ -214,13 +221,16 @@ def save_from_form():
     config = save_mqtt_config(request.form.to_dict())
     errors = validate_config(config)
     if errors:
-        return render_template(
-            "index.html",
-            config=config,
-            status=device_status(),
-            host_ip=local_ip(),
-            errors=errors,
-        ), 400
+        return (
+            render_template(
+                "index.html",
+                config=config,
+                status=device_status(),
+                host_ip=local_ip(),
+                errors=errors,
+            ),
+            400,
+        )
     return redirect(url_for("index"))
 
 
@@ -270,7 +280,6 @@ def api_device_status():
         "uptime_ms": int(payload.get("uptime_ms") or 0),
         "wifi_ssid": str(payload.get("wifi_ssid", "")),
         "wifi_ip": str(payload.get("wifi_ip", "")),
-        "wifi_rssi": int(payload.get("wifi_rssi") or 0),
         "mac_address": str(payload.get("mac_address", "")),
         "mqtt_server": str(payload.get("mqtt_server", "")),
         "mqtt_client_id": str(payload.get("mqtt_client_id", "")),

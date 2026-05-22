@@ -1,0 +1,15 @@
+{
+  "last_seen": 1779355390,
+  "remote_addr": "172.20.10.14",
+  "device_connected": true,
+  "mqtt_connected": true,
+  "message": "Device heartbeat",
+  "uptime_ms": 164971,
+  "wifi_ssid": "HUAWEI Mate 15 Pro",
+  "wifi_ip": "172.20.10.14",
+  "wifi_rssi": -38,
+  "mac_address": "B0:CB:D8:EB:95:80",
+  "mqtt_server": "4dc16443fb.iotda-device.cn-south-4.myhuaweicloud.com",
+  "mqtt_client_id": "6a05361925dd2168b611755d_ESP_cattle_detector_0_0_0",
+  "upload_interval_ms": 10000
+}

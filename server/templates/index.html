@@ -4,200 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MQTT配置中心</title>
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: Inter, "Segoe UI", system-ui, sans-serif;
-      background: #f5f7fa;
-      color: #172033;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-    }
-    .topbar {
-      background: #ffffff;
-      border-bottom: 1px solid #dce3ed;
-    }
-    .topbar-inner {
-      width: min(1120px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 18px 0 0;
-    }
-    h1 {
-      margin: 0 0 4px;
-      font-size: 26px;
-      letter-spacing: 0;
-    }
-    p {
-      margin: 0;
-      color: #5a6578;
-      line-height: 1.5;
-    }
-    code {
-      background: #edf2f7;
-      padding: 2px 5px;
-      border-radius: 5px;
-    }
-    nav {
-      display: flex;
-      gap: 4px;
-      margin-top: 18px;
-      overflow-x: auto;
-    }
-    nav button {
-      border: 0;
-      border-bottom: 3px solid transparent;
-      padding: 12px 15px 10px;
-      background: transparent;
-      color: #4c596c;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    nav button.active {
-      color: #1269d3;
-      border-bottom-color: #1269d3;
-    }
-    main {
-      width: min(1120px, calc(100% - 32px));
-      margin: 0 auto;
-      padding: 24px 0 36px;
-    }
-    .panel {
-      display: none;
-      border: 1px solid #dce3ed;
-      border-radius: 8px;
-      background: #ffffff;
-      padding: 20px;
-    }
-    .panel.active {
-      display: block;
-    }
-    .panel h2 {
-      margin: 0 0 16px;
-      font-size: 20px;
-      letter-spacing: 0;
-    }
-    .status-grid,
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
-    }
-    .metric {
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 14px;
-      background: #fbfcfe;
-    }
-    .metric span,
-    label span {
-      display: block;
-      margin-bottom: 7px;
-      color: #5a6578;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .metric strong {
-      display: block;
-      min-height: 24px;
-      font-size: 18px;
-      overflow-wrap: anywhere;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 26px;
-      padding: 0 10px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 800;
-    }
-    .ok {
-      background: #e8f7ee;
-      color: #126b36;
-    }
-    .bad {
-      background: #fff1f1;
-      color: #9b1c1c;
-    }
-    label {
-      display: grid;
-      gap: 7px;
-      font-weight: 650;
-      color: #263249;
-    }
-    input,
-    textarea {
-      width: 100%;
-      box-sizing: border-box;
-      border: 1px solid #c8d2df;
-      border-radius: 6px;
-      padding: 10px 11px;
-      font: inherit;
-      color: #172033;
-      background: #fbfcfe;
-    }
-    textarea {
-      min-height: 320px;
-      resize: vertical;
-      font-family: "Cascadia Code", Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.45;
-    }
-    .span-2 {
-      grid-column: 1 / -1;
-    }
-    .actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      justify-content: flex-end;
-      margin-top: 18px;
-      padding-top: 16px;
-      border-top: 1px solid #eef2f6;
-    }
-    .actions button {
-      border: 0;
-      border-radius: 6px;
-      padding: 10px 14px;
-      font: inherit;
-      font-weight: 700;
-      cursor: pointer;
-      background: #1269d3;
-      color: white;
-    }
-    .actions .secondary {
-      background: #e9eef5;
-      color: #1d2a3e;
-    }
-    .errors {
-      margin-bottom: 16px;
-      padding: 12px 14px;
-      border: 1px solid #f0b6b6;
-      border-radius: 8px;
-      background: #fff2f2;
-      color: #8a1f1f;
-    }
-    @media (max-width: 760px) {
-      .status-grid,
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
-      .span-2 {
-        grid-column: auto;
-      }
-      .actions {
-        justify-content: stretch;
-        flex-direction: column;
-      }
-      .actions button {
-        width: 100%;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
@@ -250,10 +57,6 @@
           <strong>{{ status.wifi_ip or '-' }}</strong>
         </div>
         <div class="metric">
-          <span>WiFi RSSI</span>
-          <strong>{{ status.wifi_rssi if status.wifi_rssi is defined else '-' }}</strong>
-        </div>
-        <div class="metric">
           <span>MAC 地址</span>
           <strong>{{ status.mac_address or '-' }}</strong>
         </div>
@@ -298,7 +101,7 @@
           </label>
           <label>
             <span>Password</span>
-            <input name="password" type="password" value="{{ config.password }}">
+            <input name="password" value="{{ config.password }}">
           </label>
           <label>
             <span>Upload Interval (ms)</span>
@@ -388,7 +191,6 @@
         metric("最近心跳", heartbeat),
         metric("WiFi SSID", status.wifi_ssid),
         metric("WiFi IP", status.wifi_ip),
-        metric("WiFi RSSI", status.wifi_rssi),
         metric("MAC 地址", status.mac_address),
         metric("当前 MQTT Server", status.mqtt_server),
         metric("Client ID", status.mqtt_client_id),
