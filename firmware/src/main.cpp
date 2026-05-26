@@ -30,11 +30,15 @@ unsigned long lastConfigRefreshTimeMs = 0;
 unsigned long lastStatusReportTimeMs = 0;
 float latestTemperature = AppConfig::fallbackTemperature;
 float latestHumidity = AppConfig::fallbackHumidity;
+String latestCity = "Unknown";
+String latestIpAddress = "Unknown";
 
-void uploadTelemetry()
+void uploadData()
 {
   mqttService.reportTemperature(latestTemperature);
   mqttService.reportHumidity(latestHumidity);
+  mqttService.reportCity(latestCity);
+  mqttService.reportIpAddress(latestIpAddress);
 }
 
 void refreshDisplay()
@@ -99,6 +103,8 @@ void loop()
 
   latestTemperature = temperatureSensor.readCelsius();
   latestHumidity = humidityService.getHumidity();
+  latestCity = humidityService.getCityName();
+  latestIpAddress = humidityService.getIpAddress();
   if (latestHumidity < 0.0f)
   {
     latestHumidity = AppConfig::fallbackHumidity;
@@ -106,7 +112,7 @@ void loop()
 
   if (lastUploadTimeMs == 0 || (now - lastUploadTimeMs) >= mqttConfig.uploadIntervalMs)
   {
-    uploadTelemetry();
+    uploadData();
     lastUploadTimeMs = now;
   }
 

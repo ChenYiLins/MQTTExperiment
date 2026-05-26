@@ -20,9 +20,12 @@ public:
   void publishInitialMessage();
   void reportTemperature(float temperature);
   void reportHumidity(float humidity);
+  void reportCity(String city);
+  void reportIpAddress(String ipAddress);
 
 private:
-  void reportProperty(const char *propertyName, float value);
+  void reportIntProperty(const char *propertyName, float value);
+  void reportStringProperty(const char *propertyName, String value);
 
   MqttConfig config;
   WiFiClientSecure tlsClient;

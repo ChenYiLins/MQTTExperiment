@@ -135,15 +135,25 @@ void MqttService::publishInitialMessage()
 
 void MqttService::reportTemperature(float temperature)
 {
-  reportProperty("temperature", temperature);
+  reportIntProperty("temperature", temperature);
 }
 
 void MqttService::reportHumidity(float humidity)
 {
-  reportProperty("humidity", humidity);
+  reportIntProperty("humidity", humidity);
 }
 
-void MqttService::reportProperty(const char *propertyName, float value)
+void MqttService::reportCity(String city)
+{
+  reportStringProperty("city", city);
+}
+
+void MqttService::reportIpAddress(String ipAddress)
+{
+  reportStringProperty("ip_address", ipAddress);
+}
+
+void MqttService::reportIntProperty(const char *propertyName, float value)
 {
   JsonDocument doc;
   JsonArray services = doc["services"].to<JsonArray>();
@@ -151,6 +161,33 @@ void MqttService::reportProperty(const char *propertyName, float value)
   service["service_id"] = AppConfig::serviceId;
   JsonObject props = service["properties"].to<JsonObject>();
   props[propertyName] = round(value * 100) / 100.0;
+
+  String payload;
+  serializeJson(doc, payload);
+
+  if (mqttClient.publish(config.reportTopic.c_str(), payload.c_str()))
+  {
+    Serial.print("[Report] ");
+    Serial.print(propertyName);
+    Serial.print(" reported: ");
+    Serial.println(payload);
+  }
+  else
+  {
+    Serial.print("[Error] ");
+    Serial.print(propertyName);
+    Serial.println(" report failed!");
+  }
+}
+
+void MqttService::reportStringProperty(const char *propertyName, String value)
+{
+  JsonDocument doc;
+  JsonArray services = doc["services"].to<JsonArray>();
+  JsonObject service = services.add<JsonObject>();
+  service["service_id"] = AppConfig::serviceId;
+  JsonObject props = service["properties"].to<JsonObject>();
+  props[propertyName] = value;
 
   String payload;
   serializeJson(doc, payload);

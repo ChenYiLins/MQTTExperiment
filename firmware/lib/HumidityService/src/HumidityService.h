@@ -18,8 +18,12 @@ public:
   /// True when a valid humidity value has been fetched at least once.
   bool isValid() const;
 
+  /// Returns the IP address resolved from the location, or "Unknown" if unresolved.
+  String getIpAddress() const;
+
 private:
   String cityName;
+  String ipAddress;
   float latitude = 0.0f;
   float longitude = 0.0f;
   float cachedHumidity = 0.0f;

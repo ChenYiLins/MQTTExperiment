@@ -65,6 +65,11 @@ String HumidityService::getCityName() const
   return cityName.length() > 0 ? cityName : String("Unknown");
 }
 
+String HumidityService::getIpAddress() const
+{
+  return ipAddress.length() > 0 ? ipAddress : String("Unknown");
+}
+
 bool HumidityService::isValid() const
 {
   return humidityValid;
@@ -121,6 +126,8 @@ bool HumidityService::resolveLocation()
   float lat = doc["lat"] | 0.0f;
   float lon = doc["lon"] | 0.0f;
 
+  const char *ip = doc["query"] | "";
+
   if (strlen(city) == 0 || (lat == 0.0f && lon == 0.0f))
   {
     Serial.println("[HumiditySvc] ip-api returned empty city/lat/lon");
@@ -128,6 +135,7 @@ bool HumidityService::resolveLocation()
   }
 
   cityName = city;
+  ipAddress = ip;
   latitude = lat;
   longitude = lon;
   locationResolved = true;
